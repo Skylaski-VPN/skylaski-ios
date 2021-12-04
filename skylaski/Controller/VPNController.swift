@@ -231,6 +231,14 @@ extension VPNController : TunnelsManagerActivationDelegate {
         print("success")
     }
 
+    // This is the beginning of the iOS 15 issue.
+    // Prior to this step another error is thrown upon initial setup:
+    /*
+     2021-12-04 16:51:13.574364-0600 skylaski[2471:730948] Connection 1: received failure notification
+     2021-12-04 16:51:13.574480-0600 skylaski[2471:730948] [connection] nw_flow_add_write_request [C1.1 164.90.159.38:443 failed channel-flow (satisfied (Path is satisfied), viable, interface: en0, ipv4, ipv6, dns)] cannot accept write requests
+     2021-12-04 16:51:13.574796-0600 skylaski[2471:730948] [connection] nw_write_request_report [C1] Send failed with error "Socket is not connected"
+     
+     */
     func tunnelActivationFailed(tunnel: TunnelContainer, error: TunnelsManagerActivationError) {
         print("smdjfbsjdfbjh",error.alertText.message)
     }
