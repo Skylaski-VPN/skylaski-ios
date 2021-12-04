@@ -112,12 +112,6 @@ class VPNController: NSObject {
 
             do {
                 self.tunnelViewModel?.applyConfiguration(other: result)
-                
-                // SETTING DNS, HARDCODED. MUST UPDATE
-                //
-                //
-                //
-                // VVVVVVVVVV
                 self.tunnelViewModel?.interfaceData[.dns] = appConstants.dns
                 appConstants.config = self.tunnelViewModel?.asWgQuickConfig() ?? ""
                 let config = try TunnelConfiguration(fromWgQuickConfig: appConstants.config)
@@ -237,34 +231,6 @@ extension VPNController : TunnelsManagerActivationDelegate {
         print("success")
     }
 
-    // I'm pretty sure this is where it's breaking on iOS 15
-    // startActivation succeeds, but connection status goes from "connecting"
-    // to "disconnecting" within a second.
-    // Example log output:
-    /*
-     configgggggggg [Interface]
-     PrivateKey = <REDACTED>
-     Address = 10.120.193.82/32, fd56:7864:75da:29ae::ddb:1fc4/128
-     DNS = 134.122.125.170
-     MTU = 1280
-
-     [Peer]
-     PublicKey = FQqkfCecxd1QT6nFrEUBI35ZhPLqSQrSQtBgsPGlMnM=
-     AllowedIPs = 0.0.0.0/0, ::/0
-     Endpoint = 159.65.107.66:51820
-     PersistentKeepalive = 21
-
-     2021-12-04 14:27:56.248381-0600 skylaski[2258:674669] startActivation: Entering (tunnel: 8765EDE4-E16D-409F-9EED-51569E0C85C2)
-     2021-12-04 14:27:56.248431-0600 skylaski[2258:674669] startActivation: Starting tunnel
-     2021-12-04 14:27:56.248685-0600 skylaski[2258:674669] startActivation: Success
-     success
-     2021-12-04 14:27:56.253054-0600 skylaski[2258:674669] Tunnel '8765EDE4-E16D-409F-9EED-51569E0C85C2' connection status changed to 'connecting'
-     2021-12-04 14:27:56.403236-0600 skylaski[2258:674669] Tunnel '8765EDE4-E16D-409F-9EED-51569E0C85C2' connection status changed to 'disconnecting'
-     2021-12-04 14:27:56.670943-0600 skylaski[2258:674669] Tunnel '8765EDE4-E16D-409F-9EED-51569E0C85C2' connection status changed to 'disconnected'
-     smdjfbsjdfbjh alertTunnelActivationFailureMessage
-     2021-12-04 14:28:01.249651-0600 skylaski[2258:674669] Status update notification timeout for tunnel '8765EDE4-E16D-409F-9EED-51569E0C85C2'. Tunnel status is now 'disconnected'.
-     */
-    
     func tunnelActivationFailed(tunnel: TunnelContainer, error: TunnelsManagerActivationError) {
         print("smdjfbsjdfbjh",error.alertText.message)
     }
