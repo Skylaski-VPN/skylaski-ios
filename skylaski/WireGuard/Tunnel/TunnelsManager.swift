@@ -425,6 +425,9 @@ class TunnelsManager {
 
             wg_log(.debug, message: "Tunnel '\(tunnel.name)' connection status changed to '\(tunnel.tunnelProvider.connection.status)'")
 
+            
+            
+            
             if tunnel.isAttemptingActivation {
                 if session.status == .connected {
                     tunnel.isAttemptingActivation = false
