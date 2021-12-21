@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-// Copyright © 2018-2019 WireGuard LLC. All Rights Reserved.
+// Copyright © 2018-2021 WireGuard LLC. All Rights Reserved.
 
 import Foundation
+import WireGuardKit
 
 extension TunnelConfiguration {
 
@@ -111,7 +112,7 @@ extension TunnelConfiguration {
         }
 
         let peerPublicKeysArray = peerConfigurations.map { $0.publicKey }
-        let peerPublicKeysSet = Set<Data>(peerPublicKeysArray)
+        let peerPublicKeysSet = Set<PublicKey>(peerPublicKeysArray)
         if peerPublicKeysArray.count != peerPublicKeysSet.count {
             throw ParseError.multiplePeersWithSamePublicKey
         }
@@ -125,9 +126,7 @@ extension TunnelConfiguration {
 
     func asWgQuickConfig() -> String {
         var output = "[Interface]\n"
-        if let privateKey = interface.privateKey.base64Key() {
-            output.append("PrivateKey = \(privateKey)\n")
-        }
+        output.append("PrivateKey = \(interface.privateKey.base64Key)\n")
         if let listenPort = interface.listenPort {
             output.append("ListenPort = \(listenPort)\n")
         }
@@ -135,8 +134,10 @@ extension TunnelConfiguration {
             let addressString = interface.addresses.map { $0.stringRepresentation }.joined(separator: ", ")
             output.append("Address = \(addressString)\n")
         }
-        if !interface.dns.isEmpty {
-            let dnsString = interface.dns.map { $0.stringRepresentation }.joined(separator: ", ")
+        if !interface.dns.isEmpty || !interface.dnsSearch.isEmpty {
+            var dnsLine = interface.dns.map { $0.stringRepresentation }
+            dnsLine.append(contentsOf: interface.dnsSearch)
+            let dnsString = dnsLine.joined(separator: ", ")
             output.append("DNS = \(dnsString)\n")
         }
         if let mtu = interface.mtu {
@@ -145,10 +146,8 @@ extension TunnelConfiguration {
 
         for peer in peers {
             output.append("\n[Peer]\n")
-            if let publicKey = peer.publicKey.base64Key() {
-                output.append("PublicKey = \(publicKey)\n")
-            }
-            if let preSharedKey = peer.preSharedKey?.base64Key() {
+            output.append("PublicKey = \(peer.publicKey.base64Key)\n")
+            if let preSharedKey = peer.preSharedKey?.base64Key {
                 output.append("PresharedKey = \(preSharedKey)\n")
             }
             if !peer.allowedIPs.isEmpty {
@@ -170,7 +169,7 @@ extension TunnelConfiguration {
         guard let privateKeyString = attributes["privatekey"] else {
             throw ParseError.interfaceHasNoPrivateKey
         }
-        guard let privateKey = Data(base64Key: privateKeyString), privateKey.count == TunnelConfiguration.keyLength else {
+        guard let privateKey = PrivateKey(base64Key: privateKeyString) else {
             throw ParseError.interfaceHasInvalidPrivateKey(privateKeyString)
         }
         var interface = InterfaceConfiguration(privateKey: privateKey)
@@ -192,13 +191,16 @@ extension TunnelConfiguration {
         }
         if let dnsString = attributes["dns"] {
             var dnsServers = [DNSServer]()
+            var dnsSearch = [String]()
             for dnsServerString in dnsString.splitToArray(trimmingCharacters: .whitespacesAndNewlines) {
-                guard let dnsServer = DNSServer(from: dnsServerString) else {
-                    throw ParseError.interfaceHasInvalidDNS(dnsServerString)
+                if let dnsServer = DNSServer(from: dnsServerString) {
+                    dnsServers.append(dnsServer)
+                } else {
+                    dnsSearch.append(dnsServerString)
                 }
-                dnsServers.append(dnsServer)
             }
             interface.dns = dnsServers
+            interface.dnsSearch = dnsSearch
         }
         if let mtuString = attributes["mtu"] {
             guard let mtu = UInt16(mtuString) else {
@@ -213,12 +215,12 @@ extension TunnelConfiguration {
         guard let publicKeyString = attributes["publickey"] else {
             throw ParseError.peerHasNoPublicKey
         }
-        guard let publicKey = Data(base64Key: publicKeyString), publicKey.count == TunnelConfiguration.keyLength else {
+        guard let publicKey = PublicKey(base64Key: publicKeyString) else {
             throw ParseError.peerHasInvalidPublicKey(publicKeyString)
         }
         var peer = PeerConfiguration(publicKey: publicKey)
         if let preSharedKeyString = attributes["presharedkey"] {
-            guard let preSharedKey = Data(base64Key: preSharedKeyString), preSharedKey.count == TunnelConfiguration.keyLength else {
+            guard let preSharedKey = PreSharedKey(base64Key: preSharedKeyString) else {
                 throw ParseError.peerHasInvalidPreSharedKey(preSharedKeyString)
             }
             peer.preSharedKey = preSharedKey

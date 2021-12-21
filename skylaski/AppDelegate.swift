@@ -31,8 +31,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let params = url.params()
         if let token = params["token"] as? String {
             print(token)
-            let privateKey = Curve25519.generatePrivateKey()
-            print(Curve25519.generatePublicKey(fromPrivateKey: privateKey).base64Key() ?? "")
             UserDefaults.token = token
             
             if var topController = UIApplication.shared.keyWindow?.rootViewController {

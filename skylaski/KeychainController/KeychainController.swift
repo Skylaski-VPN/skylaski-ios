@@ -1,5 +1,5 @@
 
-import Foundation
+import UIKit
 import Security
 
 public final class KeychainController {

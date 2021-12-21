@@ -1,26 +1,24 @@
 // SPDX-License-Identifier: MIT
-// Copyright © 2018-2019 WireGuard LLC. All Rights Reserved.
+// Copyright © 2018-2021 WireGuard LLC. All Rights Reserved.
 
 import Foundation
 import Network
 
-struct InterfaceConfiguration {
-    var privateKey: Data
-    var addresses = [IPAddressRange]()
-    var listenPort: UInt16?
-    var mtu: UInt16?
-    var dns = [DNSServer]()
+public struct InterfaceConfiguration {
+    public var privateKey: PrivateKey
+    public var addresses = [IPAddressRange]()
+    public var listenPort: UInt16?
+    public var mtu: UInt16?
+    public var dns = [DNSServer]()
+    public var dnsSearch = [String]()
 
-    init(privateKey: Data) {
-        if privateKey.count != TunnelConfiguration.keyLength {
-            fatalError("Invalid private key")
-        }
+    public init(privateKey: PrivateKey) {
         self.privateKey = privateKey
     }
 }
 
 extension InterfaceConfiguration: Equatable {
-    static func == (lhs: InterfaceConfiguration, rhs: InterfaceConfiguration) -> Bool {
+    public static func == (lhs: InterfaceConfiguration, rhs: InterfaceConfiguration) -> Bool {
         let lhsAddresses = lhs.addresses.filter { $0.address is IPv4Address } + lhs.addresses.filter { $0.address is IPv6Address }
         let rhsAddresses = rhs.addresses.filter { $0.address is IPv4Address } + rhs.addresses.filter { $0.address is IPv6Address }
 
@@ -28,6 +26,7 @@ extension InterfaceConfiguration: Equatable {
             lhsAddresses == rhsAddresses &&
             lhs.listenPort == rhs.listenPort &&
             lhs.mtu == rhs.mtu &&
-            lhs.dns == rhs.dns
+            lhs.dns == rhs.dns &&
+            lhs.dnsSearch == rhs.dnsSearch
     }
 }

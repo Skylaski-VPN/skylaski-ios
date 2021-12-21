@@ -62,7 +62,7 @@ class AppConstants : NSObject {
 
     var dns = ""
     
-    var purchasing = false
+    //    var purchasing = false // commented for unused
 
     var config = ""
 
@@ -77,8 +77,8 @@ class AppConstants : NSObject {
     func getNewPublicKey() {
         self.getDeviceId()
         if KeychainHelpher.sharedInstance.getPrivateKey() == "" || KeychainHelpher.sharedInstance.getPublicKey() == "" {
-            let priKey = Curve25519.generatePrivateKey()
-            KeychainHelpher.sharedInstance.updateKeys(strPrivate: priKey.base64Key() ?? "", strPublic: Curve25519.generatePublicKey(fromPrivateKey: priKey).base64Key() ?? "")
+            let priKey = PrivateKey()
+            KeychainHelpher.sharedInstance.updateKeys(strPrivate: priKey.base64Key , strPublic: priKey.publicKey.base64Key )
         }
         privateKey = KeychainHelpher.sharedInstance.getPrivateKey()
         publicKey = KeychainHelpher.sharedInstance.getPublicKey()
