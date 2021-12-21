@@ -1,114 +1,98 @@
 // SPDX-License-Identifier: MIT
-// Copyright © 2018-2019 WireGuard LLC. All Rights Reserved.
+// Copyright © 2018-2021 WireGuard LLC. All Rights Reserved.
 
 import Network
 import Foundation
 
-class DNSResolver {
+enum DNSResolver {}
 
-    static func isAllEndpointsAlreadyResolved(endpoints: [Endpoint?]) -> Bool {
-        for endpoint in endpoints {
-            guard let endpoint = endpoint else { continue }
-            if !endpoint.hasHostAsIPAddress() {
-                return false
+extension DNSResolver {
+
+    /// Concurrent queue used for DNS resolutions
+    private static let resolverQueue = DispatchQueue(label: "DNSResolverQueue", qos: .default, attributes: .concurrent)
+
+    static func resolveSync(endpoints: [Endpoint?]) -> [Result<Endpoint, DNSResolutionError>?] {
+        let isAllEndpointsAlreadyResolved = endpoints.allSatisfy { maybeEndpoint -> Bool in
+            return maybeEndpoint?.hasHostAsIPAddress() ?? true
+        }
+
+        if isAllEndpointsAlreadyResolved {
+            return endpoints.map { endpoint in
+                return endpoint.map { .success($0) }
             }
         }
-        return true
-    }
 
-    static func resolveSync(endpoints: [Endpoint?]) -> [Endpoint?]? {
-        let dispatchGroup = DispatchGroup()
+        return endpoints.concurrentMap(queue: resolverQueue) { endpoint -> Result<Endpoint, DNSResolutionError>? in
+            guard let endpoint = endpoint else { return nil }
 
-        if isAllEndpointsAlreadyResolved(endpoints: endpoints) {
-            return endpoints
-        }
-
-        var resolvedEndpoints: [Endpoint?] = Array(repeating: nil, count: endpoints.count)
-        for (index, endpoint) in endpoints.enumerated() {
-            guard let endpoint = endpoint else { continue }
             if endpoint.hasHostAsIPAddress() {
-                resolvedEndpoints[index] = endpoint
+                return .success(endpoint)
             } else {
-                let workItem = DispatchWorkItem {
-                    resolvedEndpoints[index] = DNSResolver.resolveSync(endpoint: endpoint)
-                }
-                DispatchQueue.global(qos: .userInitiated).async(group: dispatchGroup, execute: workItem)
+                return Result { try DNSResolver.resolveSync(endpoint: endpoint) }
+                    .mapError { error -> DNSResolutionError in
+                        // swiftlint:disable:next force_cast
+                        return error as! DNSResolutionError
+                    }
             }
         }
-
-        dispatchGroup.wait() // TODO: Timeout?
-
-        var hostnamesWithDnsResolutionFailure = [String]()
-        assert(endpoints.count == resolvedEndpoints.count)
-        for tuple in zip(endpoints, resolvedEndpoints) {
-            let endpoint = tuple.0
-            let resolvedEndpoint = tuple.1
-            if let endpoint = endpoint {
-                if resolvedEndpoint == nil {
-                    guard let hostname = endpoint.hostname() else { fatalError() }
-                    hostnamesWithDnsResolutionFailure.append(hostname)
-                }
-            }
-        }
-        if !hostnamesWithDnsResolutionFailure.isEmpty {
-            wg_log(.error, message: "DNS resolution failed for the following hostnames: \(hostnamesWithDnsResolutionFailure.joined(separator: ", "))")
-            return nil
-        }
-        return resolvedEndpoints
     }
 
-    private static func resolveSync(endpoint: Endpoint) -> Endpoint? {
-        switch endpoint.host {
-        case .name(let name, _):
-            var resultPointer = UnsafeMutablePointer<addrinfo>(OpaquePointer(bitPattern: 0))
-            var hints = addrinfo(
-                ai_flags: AI_ALL, // We set this to ALL so that we get v4 addresses even on DNS64 networks
-                ai_family: AF_UNSPEC,
-                ai_socktype: SOCK_DGRAM,
-                ai_protocol: IPPROTO_UDP,
-                ai_addrlen: 0,
-                ai_canonname: nil,
-                ai_addr: nil,
-                ai_next: nil)
-            if getaddrinfo(name, "\(endpoint.port)", &hints, &resultPointer) != 0 {
-                return nil
-            }
-            var next = resultPointer
-            var ipv4Address: IPv4Address?
-            var ipv6Address: IPv6Address?
-            while next != nil {
-                let result = next!.pointee
-                next = result.ai_next
-                if result.ai_family == AF_INET && result.ai_addrlen == MemoryLayout<sockaddr_in>.size {
-                    var sa4 = UnsafeRawPointer(result.ai_addr)!.assumingMemoryBound(to: sockaddr_in.self).pointee
-                    ipv4Address = IPv4Address(Data(bytes: &sa4.sin_addr, count: MemoryLayout<in_addr>.size))
-                    break // If we found an IPv4 address, we can stop
-                } else if result.ai_family == AF_INET6 && result.ai_addrlen == MemoryLayout<sockaddr_in6>.size {
-                    var sa6 = UnsafeRawPointer(result.ai_addr)!.assumingMemoryBound(to: sockaddr_in6.self).pointee
-                    ipv6Address = IPv6Address(Data(bytes: &sa6.sin6_addr, count: MemoryLayout<in6_addr>.size))
-                    continue // If we already have an IPv6 address, we can skip this one
-                }
-            }
-            freeaddrinfo(resultPointer)
-
-            // We prefer an IPv4 address over an IPv6 address
-            if let ipv4Address = ipv4Address {
-                return Endpoint(host: .ipv4(ipv4Address), port: endpoint.port)
-            } else if let ipv6Address = ipv6Address {
-                return Endpoint(host: .ipv6(ipv6Address), port: endpoint.port)
-            } else {
-                return nil
-            }
-        default:
+    private static func resolveSync(endpoint: Endpoint) throws -> Endpoint {
+        guard case .name(let name, _) = endpoint.host else {
             return endpoint
+        }
+
+        var hints = addrinfo()
+        hints.ai_flags = AI_ALL // We set this to ALL so that we get v4 addresses even on DNS64 networks
+        hints.ai_family = AF_UNSPEC
+        hints.ai_socktype = SOCK_DGRAM
+        hints.ai_protocol = IPPROTO_UDP
+
+        var resultPointer: UnsafeMutablePointer<addrinfo>?
+        defer {
+            resultPointer.flatMap { freeaddrinfo($0) }
+        }
+
+        let errorCode = getaddrinfo(name, "\(endpoint.port)", &hints, &resultPointer)
+        if errorCode != 0 {
+            throw DNSResolutionError(errorCode: errorCode, address: name)
+        }
+
+        var ipv4Address: IPv4Address?
+        var ipv6Address: IPv6Address?
+
+        var next: UnsafeMutablePointer<addrinfo>? = resultPointer
+        let iterator = AnyIterator { () -> addrinfo? in
+            let result = next?.pointee
+            next = result?.ai_next
+            return result
+        }
+
+        for addrInfo in iterator {
+            if let maybeIpv4Address = IPv4Address(addrInfo: addrInfo) {
+                ipv4Address = maybeIpv4Address
+                break // If we found an IPv4 address, we can stop
+            } else if let maybeIpv6Address = IPv6Address(addrInfo: addrInfo) {
+                ipv6Address = maybeIpv6Address
+                continue // If we already have an IPv6 address, we can skip this one
+            }
+        }
+
+        // We prefer an IPv4 address over an IPv6 address
+        if let ipv4Address = ipv4Address {
+            return Endpoint(host: .ipv4(ipv4Address), port: endpoint.port)
+        } else if let ipv6Address = ipv6Address {
+            return Endpoint(host: .ipv6(ipv6Address), port: endpoint.port)
+        } else {
+            // Must never happen
+            fatalError()
         }
     }
 }
 
 extension Endpoint {
-    func withReresolvedIP() -> Endpoint {
+    func withReresolvedIP() throws -> Endpoint {
         #if os(iOS)
-        var ret = self
         let hostname: String
         switch host {
         case .name(let name, _):
@@ -121,40 +105,114 @@ extension Endpoint {
             fatalError()
         }
 
-        var resultPointer = UnsafeMutablePointer<addrinfo>(OpaquePointer(bitPattern: 0))
-        var hints = addrinfo(
-            ai_flags: 0, // We set this to zero so that we actually resolve this using DNS64
-            ai_family: AF_UNSPEC,
-            ai_socktype: SOCK_DGRAM,
-            ai_protocol: IPPROTO_UDP,
-            ai_addrlen: 0,
-            ai_canonname: nil,
-            ai_addr: nil,
-            ai_next: nil)
-        if getaddrinfo(hostname, "\(port)", &hints, &resultPointer) != 0 || resultPointer == nil {
-            return ret
+        var hints = addrinfo()
+        hints.ai_family = AF_UNSPEC
+        hints.ai_socktype = SOCK_DGRAM
+        hints.ai_protocol = IPPROTO_UDP
+        hints.ai_flags = 0 // We set this to zero so that we actually resolve this using DNS64
+
+        var result: UnsafeMutablePointer<addrinfo>?
+        defer {
+            result.flatMap { freeaddrinfo($0) }
         }
-        let result = resultPointer!.pointee
-        if result.ai_family == AF_INET && result.ai_addrlen == MemoryLayout<sockaddr_in>.size {
-            var sa4 = UnsafeRawPointer(result.ai_addr)!.assumingMemoryBound(to: sockaddr_in.self).pointee
-            let addr = IPv4Address(Data(bytes: &sa4.sin_addr, count: MemoryLayout<in_addr>.size))
-            ret = Endpoint(host: .ipv4(addr!), port: port)
-        } else if result.ai_family == AF_INET6 && result.ai_addrlen == MemoryLayout<sockaddr_in6>.size {
-            var sa6 = UnsafeRawPointer(result.ai_addr)!.assumingMemoryBound(to: sockaddr_in6.self).pointee
-            let addr = IPv6Address(Data(bytes: &sa6.sin6_addr, count: MemoryLayout<in6_addr>.size))
-            ret = Endpoint(host: .ipv6(addr!), port: port)
+
+        let errorCode = getaddrinfo(hostname, "\(self.port)", &hints, &result)
+        if errorCode != 0 {
+            throw DNSResolutionError(errorCode: errorCode, address: hostname)
         }
-        freeaddrinfo(resultPointer)
-        if ret.host != host {
-            wg_log(.debug, message: "DNS64: mapped \(host) to \(ret.host)")
+
+        let addrInfo = result!.pointee
+        if let ipv4Address = IPv4Address(addrInfo: addrInfo) {
+            return Endpoint(host: .ipv4(ipv4Address), port: port)
+        } else if let ipv6Address = IPv6Address(addrInfo: addrInfo) {
+            return Endpoint(host: .ipv6(ipv6Address), port: port)
         } else {
-            wg_log(.debug, message: "DNS64: mapped \(host) to itself.")
+            fatalError()
         }
-        return ret
         #elseif os(macOS)
         return self
         #else
         #error("Unimplemented")
         #endif
+    }
+}
+
+/// An error type describing DNS resolution error
+public struct DNSResolutionError: LocalizedError {
+    public let errorCode: Int32
+    public let address: String
+
+    init(errorCode: Int32, address: String) {
+        self.errorCode = errorCode
+        self.address = address
+    }
+
+    public var errorDescription: String? {
+        return String(cString: gai_strerror(errorCode))
+    }
+}
+
+
+
+import Foundation
+
+extension Array {
+
+    /// Returns an array containing the results of mapping the given closure over the sequence’s
+    /// elements concurrently.
+    ///
+    /// - Parameters:
+    ///   - queue: The queue for performing concurrent computations.
+    ///            If the given queue is serial, the values are mapped in a serial fashion.
+    ///            Pass `nil` to perform computations on the current queue.
+    ///   - transform: the block to perform concurrent computations over the given element.
+    /// - Returns: an array of concurrently computed values.
+    func concurrentMap<U>(queue: DispatchQueue?, _ transform: (Element) -> U) -> [U] {
+        var result = [U?](repeating: nil, count: self.count)
+        let resultQueue = DispatchQueue(label: "ConcurrentMapQueue")
+
+        let execute = queue?.sync ?? { $0() }
+
+        execute {
+            DispatchQueue.concurrentPerform(iterations: self.count) { index in
+                let value = transform(self[index])
+                resultQueue.sync {
+                    result[index] = value
+                }
+            }
+        }
+
+        return result.map { $0! }
+    }
+}
+
+
+// SPDX-License-Identifier: MIT
+// Copyright © 2018-2021 WireGuard LLC. All Rights Reserved.
+
+import Foundation
+import Network
+
+extension IPv4Address {
+    init?(addrInfo: addrinfo) {
+        guard addrInfo.ai_family == AF_INET else { return nil }
+
+        let addressData = addrInfo.ai_addr.withMemoryRebound(to: sockaddr_in.self, capacity: MemoryLayout<sockaddr_in>.size) { ptr -> Data in
+            return Data(bytes: &ptr.pointee.sin_addr, count: MemoryLayout<in_addr>.size)
+        }
+
+        self.init(addressData)
+    }
+}
+
+extension IPv6Address {
+    init?(addrInfo: addrinfo) {
+        guard addrInfo.ai_family == AF_INET6 else { return nil }
+
+        let addressData = addrInfo.ai_addr.withMemoryRebound(to: sockaddr_in6.self, capacity: MemoryLayout<sockaddr_in6>.size) { ptr -> Data in
+            return Data(bytes: &ptr.pointee.sin6_addr, count: MemoryLayout<in6_addr>.size)
+        }
+
+        self.init(addressData)
     }
 }

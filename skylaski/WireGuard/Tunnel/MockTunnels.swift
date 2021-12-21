@@ -2,7 +2,6 @@
 // Copyright © 2018-2021 WireGuard LLC. All Rights Reserved.
 
 import NetworkExtension
-import WireGuardKit
 
 // Creates mock tunnels for the iOS Simulator.
 
@@ -27,11 +26,11 @@ class MockTunnels {
     static func createMockTunnels() -> [NETunnelProviderManager] {
         return tunnelNames.map { tunnelName -> NETunnelProviderManager in
 
-            var interface = InterfaceConfiguration(privateKey: PrivateKey().rawValue)
+            var interface = InterfaceConfiguration(privateKey: PrivateKey())
             interface.addresses = [IPAddressRange(from: String(format: address, Int.random(in: 1 ... 10), Int.random(in: 1 ... 254)))!]
             interface.dns = dnsServers.map { DNSServer(from: $0)! }
 
-            var peer = PeerConfiguration(publicKey: PrivateKey().publicKey.rawValue)
+            var peer = PeerConfiguration(publicKey: PrivateKey().publicKey)
             peer.endpoint = Endpoint(from: endpoint)
             peer.allowedIPs = [IPAddressRange(from: allowedIPs)!]
 

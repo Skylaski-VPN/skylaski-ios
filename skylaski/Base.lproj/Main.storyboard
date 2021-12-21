@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="19162" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="fK7-Zr-XUW">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="17701" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="fK7-Zr-XUW">
     <device id="retina6_1" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="19144"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="17703"/>
         <capability name="Named colors" minToolsVersion="9.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
@@ -29,7 +29,7 @@
                                 <color key="backgroundColor" white="0.33333333333333331" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <prototypes>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="none" indentationWidth="10" reuseIdentifier="HomeLocationTableViewCell" id="of4-02-pUS" customClass="HomeLocationTableViewCell" customModule="skylaski" customModuleProvider="target">
-                                        <rect key="frame" x="0.0" y="44.5" width="414" height="223.5"/>
+                                        <rect key="frame" x="0.0" y="28" width="414" height="223.5"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="of4-02-pUS" id="log-zy-lTc">
                                             <rect key="frame" x="0.0" y="0.0" width="414" height="223.5"/>
@@ -229,7 +229,7 @@
                                         </connections>
                                     </tableViewCell>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="none" indentationWidth="10" reuseIdentifier="HomeDeviceInfoTableViewCell" id="aeu-h5-zNd" customClass="HomeDeviceInfoTableViewCell" customModule="skylaski" customModuleProvider="target">
-                                        <rect key="frame" x="0.0" y="268" width="414" height="143"/>
+                                        <rect key="frame" x="0.0" y="251.5" width="414" height="143"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="aeu-h5-zNd" id="3U5-DL-lmm">
                                             <rect key="frame" x="0.0" y="0.0" width="414" height="143"/>
@@ -332,7 +332,7 @@
                                         </connections>
                                     </tableViewCell>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="none" indentationWidth="10" reuseIdentifier="HomeButtonTableViewCell" id="eCf-iI-AvX" customClass="HomeButtonTableViewCell" customModule="skylaski" customModuleProvider="target">
-                                        <rect key="frame" x="0.0" y="411" width="414" height="170"/>
+                                        <rect key="frame" x="0.0" y="394.5" width="414" height="170"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="eCf-iI-AvX" id="YRN-rB-jOz">
                                             <rect key="frame" x="0.0" y="0.0" width="414" height="170"/>
@@ -515,7 +515,7 @@
                                 <color key="backgroundColor" white="0.33333333329999998" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <prototypes>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="none" indentationWidth="10" reuseIdentifier="PricingTableViewCell" id="g9K-KJ-AZT" customClass="PricingTableViewCell" customModule="skylaski" customModuleProvider="target">
-                                        <rect key="frame" x="0.0" y="44.5" width="414" height="222"/>
+                                        <rect key="frame" x="0.0" y="28" width="414" height="222"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="g9K-KJ-AZT" id="sh2-td-0FW">
                                             <rect key="frame" x="0.0" y="0.0" width="414" height="222"/>
@@ -647,7 +647,7 @@
                                         </connections>
                                     </tableViewCell>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="none" indentationWidth="10" reuseIdentifier="PricingHeaderTableViewCell" id="2AE-O4-Mwn">
-                                        <rect key="frame" x="0.0" y="266.5" width="414" height="40.5"/>
+                                        <rect key="frame" x="0.0" y="250" width="414" height="40.5"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="2AE-O4-Mwn" id="gZE-Uh-gCj">
                                             <rect key="frame" x="0.0" y="0.0" width="414" height="40.5"/>

@@ -18,9 +18,10 @@ class SkyAppStoreHelper: NSObject, SKProductsRequestDelegate, SKPaymentTransacti
 
     private let kInAppPurchasingErrorNotification           =   "InAppPurchasingErrorNotification"
 
-    //private let autorenewableIndividualProductId =   "Sky_PRO1"
-    //private let autorenewableMultipleProductId   =   "Sky_PRO3"
-    //private let autorenewableLotsOffProductId    =   "Sky_PRO4"
+    private let autorenewableIndividualProductId =   "Sky_PRO1"
+    private let autorenewableMultipleProductId   =   "Sky_PRO3"
+    private let autorenewableLotsOffProductId    =   "Sky_PRO4"
+    
     private let onetimeFreeTrialProductId        =   "Sky_PRO7"
 
     static let sharedInstance                               =   SkyAppStoreHelper()
@@ -31,11 +32,12 @@ class SkyAppStoreHelper: NSObject, SKProductsRequestDelegate, SKPaymentTransacti
     var products = [SKProduct]()
     private var purchasing = false
 
-    #if DEBUG
-        let verifyReceiptURL = "https://sandbox.itunes.apple.com/verifyReceipt"
-    #else
-        let verifyReceiptURL = "https://buy.itunes.apple.com/verifyReceipt"
-    #endif
+    //******** for testing purpose only ********************//
+//    #if DEBUG
+//        let verifyReceiptURL = "https://sandbox.itunes.apple.com/verifyReceipt"
+//    #else
+//        let verifyReceiptURL = "https://buy.itunes.apple.com/verifyReceipt"
+//    #endif
 
     override init() {
         super.init()
@@ -157,37 +159,39 @@ class SkyAppStoreHelper: NSObject, SKProductsRequestDelegate, SKPaymentTransacti
         UserDefaults.standard.synchronize()
     }
 
-    func receiptValidation() {
-        let receiptFileURL = Bundle.main.appStoreReceiptURL
-        let receiptData = try? Data(contentsOf: receiptFileURL!)
-        let recieptString = receiptData?.base64EncodedString(options: NSData.Base64EncodingOptions(rawValue: 0))
-        let jsonDict: [String: AnyObject] = ["receipt-data" : recieptString! as AnyObject, "password" : "c918749d226a4d26b8643c5b7345b49c" as AnyObject]
-
-        do {
-            let requestData = try JSONSerialization.data(withJSONObject: jsonDict, options: JSONSerialization.WritingOptions.prettyPrinted)
-            let storeURL = URL(string: verifyReceiptURL)!
-            var storeRequest = URLRequest(url: storeURL)
-            storeRequest.httpMethod = "POST"
-            storeRequest.httpBody = requestData
-
-            let session = URLSession(configuration: URLSessionConfiguration.default)
-            let task = session.dataTask(with: storeRequest, completionHandler: { [weak self] (data, response, error) in
-
-                do {
-                    let jsonResponse = try JSONSerialization.jsonObject(with: data!, options: JSONSerialization.ReadingOptions.mutableContainers)
-                    print("jsonResponse",jsonResponse)
-                    if let date = self?.getExpirationDateFromResponse(jsonResponse as! NSDictionary) {
-                        print("date",date)
-                    }
-                } catch let parseError {
-                    print("errrrrrr",parseError)
-                }
-            })
-            task.resume()
-        } catch let parseError {
-            print("erorrrrrr",parseError)
-        }
-    }
+    //******** for testing purpose only ********************//
+    
+//    func receiptValidation() {
+//        let receiptFileURL = Bundle.main.appStoreReceiptURL
+//        let receiptData = try? Data(contentsOf: receiptFileURL!)
+//        let recieptString = receiptData?.base64EncodedString(options: NSData.Base64EncodingOptions(rawValue: 0))
+//        let jsonDict: [String: AnyObject] = ["receipt-data" : recieptString! as AnyObject, "password" : "c918749d226a4d26b8643c5b7345b49c" as AnyObject]
+//
+//        do {
+//            let requestData = try JSONSerialization.data(withJSONObject: jsonDict, options: JSONSerialization.WritingOptions.prettyPrinted)
+//            let storeURL = URL(string: verifyReceiptURL)!
+//            var storeRequest = URLRequest(url: storeURL)
+//            storeRequest.httpMethod = "POST"
+//            storeRequest.httpBody = requestData
+//
+//            let session = URLSession(configuration: URLSessionConfiguration.default)
+//            let task = session.dataTask(with: storeRequest, completionHandler: { [weak self] (data, response, error) in
+//
+//                do {
+//                    let jsonResponse = try JSONSerialization.jsonObject(with: data!, options: JSONSerialization.ReadingOptions.mutableContainers)
+//                    print("jsonResponse",jsonResponse)
+//                    if let date = self?.getExpirationDateFromResponse(jsonResponse as! NSDictionary) {
+//                        print("date",date)
+//                    }
+//                } catch let parseError {
+//                    print("errrrrrr",parseError)
+//                }
+//            })
+//            task.resume()
+//        } catch let parseError {
+//            print("erorrrrrr",parseError)
+//        }
+//    }
 
     func getExpirationDateFromResponse(_ jsonResponse: NSDictionary) -> Date? {
 
@@ -226,11 +230,13 @@ class SkyAppStoreHelper: NSObject, SKProductsRequestDelegate, SKPaymentTransacti
 
     func getPriceOfProduct
     () {
+        //******************************* for all products
+//        let productIds: NSSet                   =   NSSet(array: [ onetimeFreeTrialProductId,autorenewableIndividualProductId,autorenewableMultipleProductId, autorenewableLotsOffProductId])
+        //****************************** for trial products
         
-        let productIds: Set<String> =  ["Sky_PRO7"]
-        //let productIds: NSSet                   =   NSSet(array: [ onetimeFreeTrialProductId,autorenewableIndividualProductId,autorenewableMultipleProductId, autorenewableLotsOffProductId])
-        //let productsRequest: SKProductsRequest  =   SKProductsRequest(productIdentifiers: productIds as! Set<String>)
-        let productsRequest: SKProductsRequest = SKProductsRequest(productIdentifiers: productIds)
+        let productIds: NSSet                   =   NSSet(array: [ onetimeFreeTrialProductId])
+        
+        let productsRequest: SKProductsRequest  =   SKProductsRequest(productIdentifiers: productIds as! Set<String>)
         productsRequest.delegate                =   self
 
         productsRequest.start()

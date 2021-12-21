@@ -45,7 +45,7 @@ class LoginViewController: UIViewController  {
         webView.scrollView.isScrollEnabled = true
         webView.allowsBackForwardNavigationGestures = true
         
-        webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 12_1 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36 iOSSkylaskiAPP0.1"
+        webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 12_1 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36 SkylaskiVPN0.1"
         webView.allowsLinkPreview = false
         
         let myURL = URL(string:APPURL.domain + endPoint.login)
